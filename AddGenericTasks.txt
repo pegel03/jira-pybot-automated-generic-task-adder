@@ -1,0 +1,19 @@
+*** Settings ***
+Documentation     A suite for adding generic tasks to Jira issues in a sprint.
+Library			  String	
+Resource          variables.txt
+Resource          keywords.txt
+
+*** Test Cases ***
+Start Adding Issues
+	Log To Console	Supply your Jira password! (in AddGenericTasks.txt)
+    Open Browser To     ${SERVER}/jira/secure/RapidBoard.jspa?rapidView=132&view=planning.nodetail
+    Add Generic Tasks To Jira Items In Sprint	YOUR-JIRA-ACCOUNT		YOUR-JIRA-PASSWORD
+    [Teardown]    Close Window
+
+Add Generic Tasks To Single Jira Item
+	[Tags]	Single
+	Log To Console	Supply your Jira password! (in AddGenericTasks.txt)
+    Open Browser To     ${SERVER}/jira/secure/RapidBoard.jspa?rapidView=132&view=planning.nodetail
+    Add Generic Tasks To Single Jira Item	YOUR-JIRA-ACCOUNT		YOUR-JIRA-PASSWORD		PVRTIJD-774
+    [Teardown]    Close Window
