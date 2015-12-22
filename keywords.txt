@@ -2,115 +2,92 @@
 Library           Selenium2Library
 
 *** Keywords ***
-Change Selenium Speed
-	[Arguments]	${newSpeed}
-    Set Selenium Speed      ${newSpeed}
-
-	
-Restore Selenium Speed
-    Set Selenium Speed    ${DELAY}
-
 	
 User Log In
-    [Arguments]     ${userId}	${userPass}
-	Input Text	jquery=#login-form-username	${userId}
-	Input Password	jquery=#login-form-password	${userPass}
+	Open Browser To     ${SERVER}${JIRABOARD}
+	Input Text	jquery=#login-form-username	${USERNAME}
+	Input Password	jquery=#login-form-password	${PASSWORD}
 	Click Element	jquery=#login-form-submit
     Wait Until Page Contains Element    jquery=#ghx-board-name      timeout=15
     ${boardName}=    Get Text    jquery=#ghx-board-name
-	Should Be Equal		${boardName}	Media en POI, Vakantie, Vrije Tijd
-
+	Should Be Equal		${boardName}	${JIRABOARDNAME}
 	
 Open Browser To     
     [Arguments]     ${url} 
     # Open Browser open a browser without a proxy
     #Open Browser    ${url}    ${BROWSER}
+	Log To Console		Using browser: ${BROWSER}
     Create Webdriver   ${BROWSER}   
     Maximize Browser Window
     Go To       ${url}
     Set Selenium Speed    ${DELAY}
 
-Add Generic Tasks To Single Jira Item
-	[Arguments]		${userId}	${userPass}	${jiraItem}
-	User Log In		${userId}	${userPass}
-	Set Selenium Speed	2
-    Wait Until Page Contains Element    jquery=.ghx-issues.js-issue-list.ghx-has-issues .ghx-issue-compact:eq(0)      timeout=15
-	${Size}=	Get Matching Xpath Count	xpath=//div[@class="ghx-issues js-issue-list ghx-has-issues"]/div[contains(@class,"js-issue")]
-	Log To Console		Looping items: ${Size} looking for ${jiraItem}
-	:FOR	${nr}	IN RANGE	0	${size}
-	\	Log To Console		Processing next issue (nr ${nr})...
-	\	${attr}=		Get Element Attribute	jquery=.ghx-issues.js-issue-list.ghx-has-issues .ghx-issue-compact:eq(${nr}) @data-issue-key
-	\	Log To Console		Atrr: ${attr}
-	\	Run Keyword If	'${attr}'=='${jiraItem}'	Add Generic Tasks   ${nr}
-	#\	Add Generic Tasks   ${nr}
-	Log To Console		Add Generic Tasks To Single Jira Item Loop ready.
 
-	
-	
+Add Generic Tasks To Single Jira Item
+	[Arguments]		${jiraItem}
+	User Log In
+    Go To       ${SERVER}/jira/browse/${jiraItem}
+    Wait Until Page Contains Element    jquery=div.form-body div.hidden input[name=id]      timeout=15
+	${parentId}=	Get Element Attribute	jquery=div.form-body div.hidden input[name=id] @value
+    Wait Until Page Contains Element    jquery=h1#summary-val	timeout=15
+	${summary}=		Get Text	jquery=h1#summary-val
+	Log To Console		Adding tasks to issue: ${parentId} and summary: ${summary}
+	Tasks adder		${parentId}	${summary}
+	Log To Console		Add Generic Tasks To Single Jira Item ready.
+
+
 Add Generic Tasks To Jira Items In Sprint
-	[Arguments]		${userId}	${userPass}
-	User Log In		${userId}	${userPass}
-	Set Selenium Speed	2
-    Wait Until Page Contains Element    jquery=.ghx-issues.js-issue-list.ghx-has-issues .ghx-issue-compact:eq(0)      timeout=15
+	User Log In
+    Wait Until Page Contains Element    jquery=.ghx-issues.js-issue-list.ghx-has-issues		timeout=15
 	${Size}=	Get Matching Xpath Count	xpath=//div[@class="ghx-issues js-issue-list ghx-has-issues"]/div[contains(@class,"js-issue")]
 	Log To Console		Adding tasks for loop size: ${Size}
 	:FOR	${nr}	IN RANGE	0	${size}
-	\	Log To Console		Processing next issue (nr ${nr})...
-	\	Add Generic Tasks   ${nr}
-	Log To Console		Add Generic Tasks To Jira Items In Sprint Loop ready.
+	\	Log To Console		Processing index: (nr ${nr})...
+	\	${parId}=		Get Element Attribute	jquery=.ghx-issues.js-issue-list.ghx-has-issues div.js-issue:eq(${nr}) @data-issue-id
+	\	${summary}=		Get Element Attribute	jquery=.ghx-issues.js-issue-list.ghx-has-issues div.js-issue:eq(${nr}) div.ghx-issue-content div.ghx-row div.ghx-summary @title
+	\	Log To Console	found parent id: ${parId} and summary: ${summary}
+	\	Tasks Adder	${parId}	${summary}
+	\	Go To       ${SERVER}${JIRABOARD}
+    \	Wait Until Page Contains Element    jquery=.ghx-issues.js-issue-list.ghx-has-issues		timeout=15
+	Log To Console		Add Generic Tasks To Jira Items In Sprint ready.
 
 	
-Add Generic Tasks
-	[Arguments]		${nr}
-	#Log To Console		pgl nr= ${nr}
-	# nu één element nemen om eerste test subtaak op te voeren
-	# subtaak bestaat test: div.ghx-container div.ghx-summary[title="Systeemtesten"]
-	Wait Until Keyword Succeeds		20	2	Click Element	jquery=.ghx-issues.js-issue-list.ghx-has-issues .ghx-issue-compact:eq(${nr})
-    Wait Until Page Contains Element    jquery=div.js-view-in-jira a[title="View this issue in JIRA"]      timeout=15
-	# issueID en titel Loopt op onverklaarbare wijze wel eens een issue achter. Wensen we niet te gebruiken, eerst alleen maar loggen.
-	${issueID}=    Get Text    jquery=.ghx-issues.js-issue-list.ghx-has-issues .ghx-issue-compact:eq(${nr}) a
-	#${issueTitle}=    Get Text    jquery=.ghx-issues.js-issue-list.ghx-has-issues .ghx-issue-compact:eq(${nr}) span.ghx-inner
-	Restore Selenium Speed
-	Log To Console		Adding tasks to issue: ${issueID}
-	@{subtasks}    Create List    Requirements en specificaties verzamelen/maken 		Review documentatie		Review code		Systeemtesten
-	${isFirstTask}=		Set Variable	'true'
-    :FOR    ${task}    IN    @{subtasks}
-	# \	Test If Task Already Present	${task}
+Tasks Adder
+    [Arguments]		${parentId}		${summary}
+	#@{subtasks}    Create List    Requirements en specificaties verzamelen/maken 		To make it work		Review documentatie		Review code		Systeemtesten
+	@{subtasks}    Create List    doit
+	#@{subtasks}    Create List    Door TAB: Apache config aanpassen op ONTW (rewrite rules)	Door TAB: loadbalancing laten inregelen op ONTW	Door TAB: Tomcat instantie maken op ONTW	Door TAB: Deployit configuratie laten maken op ONTW	Deployit repository vullen op ONTW
+	#@{subtasks}    Create List    Door TAB: Apache config aanpassen op TEST (rewrite rules)	Door TAB: loadbalancing laten inregelen op TEST	Door TAB: Tomcat instantie maken op TEST	Door TAB: Deployit configuratie laten maken op TEST	Deployit repository vullen op TEST
+	#@{subtasks}    Create List    	Door TAB: Deployit configuratie laten maken op ACC	Deployit repository vullen op ACC	Door TAB: loadbalancing laten inregelen op ACC	Door Tripple: Apache config aanpassen op ACC (rewrite rules)	Door Tripple: Tomcat instantie maken op ACC en app deployen
+	#@{subtasks}    Create List    Door TAB: Deployit configuratie laten maken op PROD	Deployit repository vullen op PROD	Door TAB: loadbalancing laten inregelen op PROD	Door Tripple: Apache config aanpassen op PROD (rewrite rules)	Door Tripple: Tomcat instantie maken op PROD en app deployen
+	#@{subtasks}    Create List    Systeemtesten
+	:FOR    ${task}    IN    @{subtasks}
 	\	Log To Console		Adding Next Task: ${task} 
-	#\	Add Task   ${task}	${issueID}	${issueTitle}	${isFirstTask}
-	\	Add Task   ${task}	${isFirstTask}
-	\   ${isFirstTask}=		Set Variable	'false'
-	Set Selenium Speed	2
+	\	Go To       ${SERVER}/jira/secure/CreateSubTaskIssue.jspa?parentIssueId=${parentId}
+	\	Wait Until Page Contains Element    jquery=#subtask-create-start-submit		timeout=15
+	\	Wait Until Keyword Succeeds		20	2	Click Element	jquery=#subtask-create-start-submit
+	\	Add Task   ${task}	${summary}
+	\	Wait Until Page Contains Element    jquery=div.form-body div.hidden input[name=id]      timeout=15
 	Log To Console		Adding Task Loop ready.
 
-	
+
 Add Task
-	[Arguments]		${task}		${isFirstTask}
-	# Is hier het rechter panel klaar? Klik aanpassen. Wacht op element voor na eerste taak. Geeft stale element, daarom buildin Wait Until Keyword Succeeds.
-	Run Keyword If	${isFirstTask}=='true'	Wait Until Keyword Succeeds		20	2	Click Element	jquery=button.ghx-actions
-	Run Keyword Unless	${isFirstTask}=='true'	Wait Until Keyword Succeeds		20	2	Click Element	jquery=button.js-create-subtask
-	Run Keyword If	${isFirstTask}=='true'	Wait Until Keyword Succeeds		20	2	Click Element	jquery=#create-subtask.aui-list-item-link
-	Restore Selenium Speed	
+	[Arguments]		${task}		${summary}
 	Wait Until Page Contains Element    jquery=input#summary	timeout=15
-	Input Text	jquery=input#summary	${task}
+	Input Text	jquery=input#summary	${task}: ${summary}
 	Input Text	jquery=textarea#description	${task}: Deze subtaak is toegevoegd door pybot.
-	Input Text	jquery=textarea#customfield_10181-textarea		ScrumteamMVV
-	Click Element	jquery=#create-issue-submit
-	# blinker verwijderen:
-    Wait Until Element Is Visible    jquery=#jira > div.global-msg > div > span.icon-close      timeout=15
-	Click Element	jquery=#jira > div.global-msg > div > span.icon-close
-	Set Selenium Speed	1
+	Click Element	jquery=#subtask-create-details-submit
+	#Select From List xpath=//*[@id="customfield_10980"] 11250
 
 	
-Test If Task Already Present
-#Werkt niet, get text heeft timeout nodig.
-	[Arguments]		${task}
-	# Set Selenium Speed	5
-	Click Element	jquery=a[title="Sub-Tasks"]
-	#${taskTitleStart}=    Get Text    jquery=div.js-view-in-jira a[title="View this issue in JIRA"]
-	# Wait Until Keyword Succeeds		20	2	Get Text    jquery=div.ghx-container div.ghx-summary[title="Systeemtesten --> Foto niet zichtbaar in redactie-interface in ACC"]
-	Wait Until Page Contains Element    jquery=div.ghx-container div.ghx-summary[title="Systeemtesten --> Foto niet zichtbaar in redactie-interface in ACC"]	timeout=15
-	${taskTitleStart}=    Get Text    jquery=div.ghx-container div.ghx-summary[title="Systeemtesten --> Foto niet zichtbaar in redactie-interface in ACC"]
-	Log To Console	taskTitleStart ${taskTitleStart}
+#########	
+Possible usefull key words examples
+# default delay = 0
+    Set Selenium Speed    ${DELAY}
+	${taskTitleStart}=    Get Text    jquery=div.js-view-in-jira a[title="View this issue in JIRA"]
 	Run Keyword If	Page Should Not Contain Element		jquery=div.ghx-container div.ghx-summary[title^="Systeemtesten"]:eq(0)	Log To Console		element geveonden.
-	
+	Run Keyword If	'${attr}'=='${jiraItem}'	Add Generic Tasks   ${nr}
+	Wait Until Keyword Succeeds		20	2	Click Element	jquery=#subtask-create-start-submit
+	${isFirstTask}=		Set Variable	'true'
+	\	Add Task   ${task}	${isFirstTask}
+	\   ${isFirstTask}=		Set Variable	'false'

@@ -6,14 +6,14 @@ Resource          keywords.txt
 
 *** Test Cases ***
 Start Adding Issues
-	Log To Console	Supply your Jira password! (in AddGenericTasks.txt)
-    Open Browser To     ${SERVER}/jira/secure/RapidBoard.jspa?rapidView=132&view=planning.nodetail
-    Add Generic Tasks To Jira Items In Sprint	YOUR-JIRA-ACCOUNT		YOUR-JIRA-PASSWORD
+	[Tags]	All
+	Log To Console	Supply your Jira password! (in variables_prod.py)
+    Add Generic Tasks To Jira Items In Sprint
     [Teardown]    Close Window
 
 Add Generic Tasks To Single Jira Item
 	[Tags]	Single
-	Log To Console	Supply your Jira password! (in AddGenericTasks.txt)
-    Open Browser To     ${SERVER}/jira/secure/RapidBoard.jspa?rapidView=132&view=planning.nodetail
-    Add Generic Tasks To Single Jira Item	YOUR-JIRA-ACCOUNT		YOUR-JIRA-PASSWORD		PVRTIJD-774
+	Log To Console	Supply your Jira password! (in variables_prod.py)
+    Add Generic Tasks To Single Jira Item	PVRTIJD-2620
     [Teardown]    Close Window
+	
